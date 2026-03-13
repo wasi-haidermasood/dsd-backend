@@ -18,6 +18,8 @@ import { FooterConfig } from "./models/FooterConfig.js";
 import { Page } from "./models/Page.js";
 import { NavigationConfig } from "./models/NavigationConfig.js";
 import { SiteConfig } from "./models/SiteConfig.js";
+import { HowWeWorkConfig } from "./models/HowWeWorkConfig.js";
+import { FaqConfig } from "./models/FaqConfig.js";
 
 dotenv.config();
 
@@ -35,7 +37,6 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // allow non-browser tools (like Postman) with no origin
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error("Not allowed by CORS: " + origin), false);
@@ -66,7 +67,7 @@ const authMiddleware = (req, res, next) => {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    req.user = payload; // { userId, role, iat, exp }
+    req.user = payload;
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });
@@ -80,32 +81,162 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// Get hero content
+// GET /api/hero - public
 app.get("/api/hero", async (req, res) => {
   try {
     let hero = await Hero.findOne();
 
-    // If no hero exists yet, create one with default data
     if (!hero) {
       hero = await Hero.create({
-        heading: "The Ultimate \nDevelopment Agency",
+        heading:
+          "The Ultimate Development Agency\nWe drive [rotating] for your business",
         description:
-          "We turn clicks into customers with next-gen digital marketing.\n" +
-          "Let's build your brand, boost your traffic, and grow your business online.\n" +
-          "We're a team of creative strategists passionate about driving growth.\n" +
-          "Using data, design, and innovation, we craft digital experiences that attract, engage, and convert.",
+          "Transform your digital presence with data-driven strategies.\n" +
+          "We create experiences that convert visitors into customers.",
         buttons: [
-          { label: "Contact Us", href: "#contact" },
-          { label: "Learn More", href: "#services" },
+          { label: "Get Started", href: "#contact" },
+          { label: "View Work", href: "#portfolio" },
         ],
         products: [
           {
-            title: "Moonbeam",
+            title: "Project One",
             link: "",
             thumbnail:
               "https://aceternity.com/images/products/thumbnails/new/moonbeam.png",
           },
+          {
+            title: "Project Two",
+            link: "",
+            thumbnail:
+              "https://aceternity.com/images/products/thumbnails/new/cursor.png",
+          },
+          {
+            title: "Project Three",
+            link: "",
+            thumbnail:
+              "https://aceternity.com/images/products/thumbnails/new/rogue.png",
+          },
         ],
+        trustText: "Trusted by leading brands",
+        trustLogos: [
+          { name: "Google", url: "https://cdn.simpleicons.org/google/white" },
+          {
+            name: "Microsoft",
+            url: "https://cdn.simpleicons.org/microsoft/white",
+          },
+          {
+            name: "Spotify",
+            url: "https://cdn.simpleicons.org/spotify/white",
+          },
+          { name: "Slack", url: "https://cdn.simpleicons.org/slack/white" },
+        ],
+        widgets: {
+          showAvailabilityWidget: true,
+          availabilityText: "Available for new projects",
+          showStatsWidget: true,
+          stats: [
+            { value: "500+", label: "Projects" },
+            { value: "98%", label: "Satisfaction" },
+            { value: "10+", label: "Years" },
+          ],
+          animateStats: true,
+          showVideoWidget: true,
+          videoThumbnail: "",
+          videoUrl: "",
+          autoPlayVideo: false,
+          showTestimonialWidget: true,
+          testimonials: [
+            {
+              name: "Sarah Johnson",
+              role: "CEO",
+              company: "TechStart",
+              avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+              text: "They transformed our business completely. Best decision we ever made.",
+              rating: 5,
+            },
+            {
+              name: "Michael Chen",
+              role: "Founder",
+              company: "GrowthLabs",
+              avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+              text: "Professional, creative, and delivered beyond expectations.",
+              rating: 5,
+            },
+          ],
+          testimonialTypingEffect: true,
+          testimonialAutoRotate: true,
+          testimonialRotateInterval: 6000,
+          showRotatingWords: true,
+          rotatingWords: [
+            { text: "Growth", color: "#FACC15" },
+            { text: "Success", color: "#22C55E" },
+            { text: "Results", color: "#3B82F6" },
+            { text: "Impact", color: "#A855F7" },
+          ],
+          rotatingWordsInterval: 3000,
+          animateTrustLogos: true,
+          trustLogosSpeed: 20,
+          showBackgroundEffects: true,
+          showScrollIndicator: true,
+          typography: {
+            headingFont: "Inter",
+            headingWeight: "700",
+            headingSize: "default",
+            headingColor: "#FFFFFF",
+            descriptionFont: "Inter",
+            descriptionColor: "rgba(255,255,255,0.6)",
+            highlightBgColor: "#FACC15",
+            highlightTextColor: "#111827",
+            highlightPadding: "0 8px",
+            highlightRadius: "6px",
+            highlightRotation: -1,
+            boldColor: "#FFFFFF",
+            italicColor: "#FACC15",
+          },
+        },
+      });
+    }
+
+    res.json(hero);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error fetching hero data" });
+  }
+});
+
+// Update hero content
+app.put("/api/hero", async (req, res) => {
+  try {
+    const {
+      heading,
+      description,
+      buttons,
+      products,
+      trustText,
+      trustLogos,
+      widgets,
+    } = req.body;
+
+    let hero = await Hero.findOne();
+
+    if (hero) {
+      hero.heading = heading ?? hero.heading;
+      hero.description = description ?? hero.description;
+      hero.buttons = buttons ?? hero.buttons;
+      hero.products = products ?? hero.products;
+      hero.trustText = trustText ?? hero.trustText;
+      hero.trustLogos = trustLogos ?? hero.trustLogos;
+      hero.widgets = widgets ?? hero.widgets;
+      await hero.save();
+    } else {
+      hero = await Hero.create({
+        heading,
+        description,
+        buttons,
+        products,
+        trustText,
+        trustLogos,
+        widgets,
       });
     }
 
@@ -121,7 +252,6 @@ app.get("/api/services", async (req, res) => {
   try {
     let config = await ServicesConfig.findOne();
 
-    // If nothing exists, create with defaults
     if (!config) {
       config = await ServicesConfig.create({
         badge: "Our Services",
@@ -167,7 +297,6 @@ app.get("/api/services", async (req, res) => {
       });
     }
 
-    // Sort by order before returning
     config.services.sort((a, b) => a.order - b.order);
 
     res.json(config);
@@ -177,23 +306,62 @@ app.get("/api/services", async (req, res) => {
   }
 });
 
-// ---------- BLOG PUBLIC ROUTES ----------
+// ---------- BLOG SETTINGS PUBLIC ROUTE ----------
 
-// 1) Blog listing page SEO settings (MUST be BEFORE :slug)
 app.get("/api/blog/settings", async (req, res) => {
   try {
     let settings = await BlogSettings.findOne();
+
     if (!settings) {
       settings = await BlogSettings.create({
         pageTitle: "Blog | Digital Social Dreams",
         pageDescription:
           "Read the latest insights on digital marketing, SEO, development, and growth strategies.",
+        badge: "Articles & Resources",
+        heading: "Our Latest Insights",
+        highlightedWord: "Insights",
+        description:
+          "Explore our latest articles on digital marketing, SEO, development and growth strategies designed to scale your business.",
+        accentColor: "#FACC15",
+        accentColorDark: "#D97706",
+        badgeBgColor: "#FEF9C3",
+        badgeBorderColor: "#FDE68A",
+        badgeTextColor: "#CA8A04",
+        emptyStateTitle: "No articles found",
+        emptyStateDescription:
+          "We are currently brewing up some amazing content. Check back soon for our latest updates and insights.",
+        cardBorderRadius: "2rem",
+        cardHoverScale: 1.02,
+        showReadTime: true,
+        showCategory: true,
+        showAuthor: true,
+        postsPerRow: 3,
+        gap: "2.5rem",
       });
     }
+
     res.json(settings);
   } catch (err) {
     console.error("GET /api/blog/settings error:", err);
     res.status(500).json({ message: "Error fetching blog settings" });
+  }
+});
+
+// ---------- BLOG SETTINGS ADMIN ROUTE ----------
+
+app.put("/api/blog/settings", authMiddleware, async (req, res) => {
+  try {
+    const data = req.body;
+
+    const settings = await BlogSettings.findOneAndUpdate({}, data, {
+      new: true,
+      upsert: true,
+    });
+
+    res.json(settings);
+  } catch (err) {
+    console.error("PUT /api/blog/settings error:", err);
+    res.status(500).json({ message: "Error updating blog settings" });
   }
 });
 
@@ -517,21 +685,6 @@ app.delete("/api/blog/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// Update blog listing page SEO settings
-app.put("/api/blog/settings", authMiddleware, async (req, res) => {
-  try {
-    const data = req.body;
-    const settings = await BlogSettings.findOneAndUpdate({}, data, {
-      new: true,
-      upsert: true,
-    });
-    res.json(settings);
-  } catch (err) {
-    console.error("PUT /api/blog/settings error:", err);
-    res.status(500).json({ message: "Error updating blog settings" });
-  }
-});
-
 // ---------- PAGES ADMIN ROUTES (protected) ----------
 
 // GET /api/admin/pages - list all pages (draft + published)
@@ -544,6 +697,10 @@ app.get("/api/admin/pages", authMiddleware, async (req, res) => {
         title: p.title,
         slug: p.slug,
         status: p.status,
+        contentType: p.contentType || "html",
+        hasNavigation: p.hasNavigation !== false,
+        hasFooter: p.hasFooter !== false,
+        backgroundColor: p.backgroundColor || "#FFFFFF",
         showInFooter: p.showInFooter,
         footerLabel: p.footerLabel,
         updatedAt: p.updatedAt,
@@ -599,9 +756,14 @@ app.post("/api/pages", authMiddleware, async (req, res) => {
     const page = await Page.create({
       title: data.title,
       slug,
+      contentType: data.contentType || "html",
       content: data.content,
+      hasNavigation: data.hasNavigation !== false,
+      hasFooter: data.hasFooter !== false,
+      backgroundColor: data.backgroundColor || "#FFFFFF",
       seoTitle: data.seoTitle || "",
       seoDescription: data.seoDescription || "",
+      seoImage: data.seoImage || "",
       status: data.status || "published",
       showInFooter: !!data.showInFooter,
       footerLabel: data.footerLabel || data.title,
@@ -644,14 +806,31 @@ app.put("/api/pages/:id", authMiddleware, async (req, res) => {
       }
     }
 
-    const updated = await Page.findByIdAndUpdate(
-      id,
-      {
-        ...data,
-        showInFooter: !!data.showInFooter,
-      },
-      { new: true }
-    );
+    const updateData = {
+      ...data,
+      showInFooter: !!data.showInFooter,
+    };
+
+    // Explicitly handle boolean fields that could be false
+    if (typeof data.hasNavigation === "boolean") {
+      updateData.hasNavigation = data.hasNavigation;
+    }
+    if (typeof data.hasFooter === "boolean") {
+      updateData.hasFooter = data.hasFooter;
+    }
+    if (data.contentType) {
+      updateData.contentType = data.contentType;
+    }
+    if (typeof data.backgroundColor === "string") {
+      updateData.backgroundColor = data.backgroundColor;
+    }
+    if (typeof data.seoImage === "string") {
+      updateData.seoImage = data.seoImage;
+    }
+
+    const updated = await Page.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
 
     if (!updated) {
       return res.status(404).json({ message: "Page not found" });
@@ -903,6 +1082,215 @@ app.delete("/api/admin/testimonials/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// ---------- HOW WE WORK PUBLIC ROUTES ----------
+
+app.get("/api/how-we-work", async (req, res) => {
+  try {
+    let config = await HowWeWorkConfig.findOne();
+
+    if (!config) {
+      config = await HowWeWorkConfig.create({
+        enabled: true,
+        badge: "The Process",
+        heading: "Our Strategy for",
+        rotatingWords: ["Success", "Growth", "Impact", "Results"],
+        description:
+          "We translate complex challenges into",
+        highlightedText: "elegant solutions",
+        descriptionSuffix: "through a proven four-step methodology.",
+        cornerImages: [
+          {
+            imageUrl:
+              "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop",
+            order: 0,
+          },
+          {
+            imageUrl:
+              "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop",
+            order: 1,
+          },
+        ],
+        steps: [
+          {
+            stepId: "01",
+            title: "Discovery",
+            subtitle: "Uncovering Truths",
+            description:
+              "We dive deep into your brand's DNA. Through market audits and competitor analysis, we build a strategy based on hard data, not guesswork.",
+            tags: ["Market Audit", "User Research", "Data Analysis"],
+            image:
+              "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop",
+            order: 0,
+          },
+          {
+            stepId: "02",
+            title: "Strategy",
+            subtitle: "The Master Plan",
+            description:
+              "Every pixel has a purpose. We blueprint the user journey, define technical requirements, and create a roadmap that guarantees a scalable future.",
+            tags: ["Wireframing", "Architecture", "Roadmap"],
+            image:
+              "https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=2070&auto=format&fit=crop",
+            order: 1,
+          },
+          {
+            stepId: "03",
+            title: "Creation",
+            subtitle: "Design & Build",
+            description:
+              "Where magic happens. Our designers craft world-class visuals while developers write clean, high-performance code to bring the vision to life.",
+            tags: ["UI/UX Design", "Development", "Animation"],
+            image:
+              "https://images.unsplash.com/photo-1522542550221-31fd19575a2d?q=80&w=2070&auto=format&fit=crop",
+            order: 2,
+          },
+          {
+            stepId: "04",
+            title: "Launch",
+            subtitle: "Scale & Dominate",
+            description:
+              "Launch is just Day 1. We monitor real-time performance, optimize for conversions, and help you scale your digital presence to new heights.",
+            tags: ["QA Testing", "Deployment", "Growth"],
+            image:
+              "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2832&auto=format&fit=crop",
+            order: 3,
+          },
+        ],
+      });
+    }
+
+    res.json(config);
+  } catch (err) {
+    console.error("GET /api/how-we-work error:", err);
+    res.status(500).json({ message: "Error fetching how we work config" });
+  }
+});
+
+// ---------- HOW WE WORK ADMIN ROUTES ----------
+
+app.put("/api/how-we-work", authMiddleware, async (req, res) => {
+  try {
+    const {
+      enabled,
+      badge,
+      heading,
+      rotatingWords,
+      description,
+      highlightedText,
+      descriptionSuffix,
+      cornerImages,
+      steps,
+    } = req.body;
+
+    const config = await HowWeWorkConfig.findOneAndUpdate(
+      {},
+      {
+        enabled,
+        badge,
+        heading,
+        rotatingWords,
+        description,
+        highlightedText,
+        descriptionSuffix,
+        cornerImages,
+        steps,
+      },
+      { new: true, upsert: true }
+    );
+
+    res.json(config);
+  } catch (err) {
+    console.error("PUT /api/how-we-work error:", err);
+    res.status(500).json({ message: "Error updating how we work config" });
+  }
+});
+
+
+// ---------- FAQ PUBLIC ROUTES ----------
+app.get("/api/faqs", async (req, res) => {
+  try {
+    let config = await FaqConfig.findOne();
+
+    if (!config) {
+      config = await FaqConfig.create({
+        enabled: true,
+        badge: "Got Questions?",
+        heading: "Frequently Asked Questions",
+        highlightedWord: "Questions",
+        description:
+          "Everything you need to know about our services, process, and how we drive growth.",
+        faqs: [
+          {
+            question: "What services does DigitalSocialDreams offer?",
+            answer:
+              "We offer a comprehensive suite of digital marketing services, including Search Engine Optimization (SEO), Pay-Per-Click (PPC) Advertising, Social Media Management, Custom Web Development (including Shopify & WordPress), and strategic brand consulting.",
+            order: 0,
+          },
+          {
+            question: "How long does it take to see results?",
+            answer:
+              "Timelines vary depending on the service. Paid advertising (PPC) can generate traffic immediately, while organic strategies like SEO typically take 3 to 6 months to show significant, sustainable growth. We focus on long-term ROI rather than quick, fleeting wins.",
+            order: 1,
+          },
+        ],
+        ctaTitle: "Ready to transform your brand?",
+        ctaDescription:
+          "Let's discuss how our tailored digital marketing services and custom development can drive exponential growth for your business.",
+        ctaButtonLabel: "Start Your Project",
+        ctaButtonHref: "/contact",
+      });
+    }
+
+    const faqs = [...config.faqs].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    res.json({
+      enabled: config.enabled,
+      badge: config.badge,
+      heading: config.heading,
+      highlightedWord: config.highlightedWord,
+      description: config.description,
+      faqs,
+      ctaTitle: config.ctaTitle,
+      ctaDescription: config.ctaDescription,
+      ctaButtonLabel: config.ctaButtonLabel,
+      ctaButtonHref: config.ctaButtonHref,
+    });
+  } catch (err) {
+    console.error("GET /api/faqs error:", err);
+    res.status(500).json({ message: "Error fetching FAQ config" });
+  }
+});
+
+// ---------- FAQ ADMIN ROUTES ----------
+app.put("/api/faqs", authMiddleware, async (req, res) => {
+  try {
+    const data = req.body;
+
+    const config = await FaqConfig.findOneAndUpdate({}, data, {
+      new: true,
+      upsert: true,
+    });
+
+    const faqs = [...config.faqs].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    res.json({
+      enabled: config.enabled,
+      badge: config.badge,
+      heading: config.heading,
+      highlightedWord: config.highlightedWord,
+      description: config.description,
+      faqs,
+      ctaTitle: config.ctaTitle,
+      ctaDescription: config.ctaDescription,
+      ctaButtonLabel: config.ctaButtonLabel,
+      ctaButtonHref: config.ctaButtonHref,
+    });
+  } catch (err) {
+    console.error("PUT /api/faqs error:", err);
+    res.status(500).json({ message: "Error updating FAQ config" });
+  }
+});
+
 // ---------- TEAM PUBLIC ROUTES ----------
 
 app.get("/api/team", async (req, res) => {
@@ -1044,7 +1432,8 @@ app.get("/api/contact", async (req, res) => {
             id: "address-lahore",
             type: "address",
             title: "Visit Us - Lahore",
-            content: "Main Canal Road, Laalpul Near Shell Petrol Pump, Lahore",
+            content:
+              "Main Canal Road, Laalpul Near Shell Petrol Pump, Lahore",
             description: "Lahore, Pakistan",
             order: 2,
           },
@@ -1198,7 +1587,11 @@ app.get("/api/footer", async (req, res) => {
         ],
 
         servicesLinks: [
-          { label: "Search Engine Optimization", href: "#services", order: 0 },
+          {
+            label: "Search Engine Optimization",
+            href: "#services",
+            order: 0,
+          },
           { label: "Social Media Marketing", href: "#services", order: 1 },
           { label: "Web Development", href: "#services", order: 2 },
           {
@@ -1325,31 +1718,50 @@ app.put("/api/footer", authMiddleware, async (req, res) => {
   }
 });
 
+// Add to your server.js
+
 // ---------- NAVIGATION PUBLIC ROUTES ----------
 app.get("/api/navigation", async (req, res) => {
   try {
     let config = await NavigationConfig.findOne();
 
     if (!config) {
-      // Seed defaults from your current navbar
       config = await NavigationConfig.create({
         brandText: "Digital Social Dreams",
         logoUrl: "",
         navItems: [
-          { label: "Home", href: "#home", order: 0 },
-          { label: "Services", href: "#services", order: 1 },
-          { label: "Portfolio", href: "#portfolio", order: 2 },
-          { label: "About", href: "#about", order: 3 },
-          { label: "Contact", href: "#contact", order: 4 },
+          { label: "Home", href: "#home", order: 0, isDropdown: false, dropdownItems: [] },
+          { 
+            label: "Services", 
+            href: "#services", 
+            order: 1, 
+            isDropdown: true, 
+            dropdownItems: [
+              { label: "SEO", href: "/services/seo", description: "Search Engine Optimization", icon: "Search", order: 0 },
+              { label: "Web Development", href: "/services/web-development", description: "Custom websites & apps", icon: "Code", order: 1 },
+              { label: "Social Media", href: "/services/social-media", description: "Social media marketing", icon: "Share2", order: 2 },
+              { label: "PPC Advertising", href: "/services/ppc", description: "Pay-per-click campaigns", icon: "Target", order: 3 },
+            ]
+          },
+          { label: "Portfolio", href: "#portfolio", order: 2, isDropdown: false, dropdownItems: [] },
+          { label: "About", href: "#about", order: 3, isDropdown: false, dropdownItems: [] },
+          { label: "Blog", href: "/blog", order: 4, isDropdown: false, dropdownItems: [] },
+          { label: "Contact", href: "/contact", order: 5, isDropdown: false, dropdownItems: [] },
         ],
         ctaLabel: "Get Started",
         ctaHref: "#contact",
       });
     }
 
-    const navItems = [...config.navItems].sort(
-      (a, b) => (a.order || 0) - (b.order || 0)
-    );
+    // Sort nav items and dropdown items
+    const navItems = [...config.navItems]
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .map(item => ({
+        ...item.toObject(),
+        dropdownItems: item.dropdownItems 
+          ? [...item.dropdownItems].sort((a, b) => (a.order || 0) - (b.order || 0))
+          : []
+      }));
 
     res.json({
       brandText: config.brandText,
@@ -1374,9 +1786,14 @@ app.put("/api/navigation", authMiddleware, async (req, res) => {
       upsert: true,
     });
 
-    const navItems = [...config.navItems].sort(
-      (a, b) => (a.order || 0) - (b.order || 0)
-    );
+    const navItems = [...config.navItems]
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .map(item => ({
+        ...item.toObject(),
+        dropdownItems: item.dropdownItems 
+          ? [...item.dropdownItems].sort((a, b) => (a.order || 0) - (b.order || 0))
+          : []
+      }));
 
     res.json({
       brandText: config.brandText,
@@ -1390,13 +1807,13 @@ app.put("/api/navigation", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Error updating navigation config" });
   }
 });
+
 // ---------- SITE CONFIG PUBLIC ROUTES ----------
 
 app.get("/api/site", async (req, res) => {
   try {
     let config = await SiteConfig.findOne();
 
-    // Seed from your current index.html if not exists
     if (!config) {
       config = await SiteConfig.create({
         siteName: "DigitalSocialDreams",
@@ -1426,17 +1843,17 @@ app.get("/api/site", async (req, res) => {
           {
             "@context": "https://schema.org",
             "@type": "Organization",
-            "name": "DigitalSocialDreams",
-            "description":
+            name: "DigitalSocialDreams",
+            description:
               "Digital marketing agency specializing in SEO, social media marketing, web development, and PPC advertising",
-            "url": "https://digitalsocialdreams.com",
-            "logo": "https://digitalsocialdreams.com/logo.png",
-            "contactPoint": {
+            url: "https://digitalsocialdreams.com",
+            logo: "https://digitalsocialdreams.com/logo.png",
+            contactPoint: {
               "@type": "ContactPoint",
-              "telephone": "+1-XXX-XXX-XXXX",
-              "contactType": "customer service",
+              telephone: "+1-XXX-XXX-XXXX",
+              contactType: "customer service",
             },
-            "sameAs": [
+            sameAs: [
               "https://facebook.com/digitalsocialdreams",
               "https://twitter.com/wasimarketing",
               "https://linkedin.com/company/wasi-marketing-solutions",
@@ -1449,26 +1866,23 @@ app.get("/api/site", async (req, res) => {
           {
             "@context": "https://schema.org",
             "@type": "FAQPage",
-            "mainEntity": [
+            mainEntity: [
               {
                 "@type": "Question",
-                "name": "What services does your digital marketing agency offer?",
-                "acceptedAnswer": {
+                name: "What services does your digital marketing agency offer?",
+                acceptedAnswer: {
                   "@type": "Answer",
-                  "text":
-                    "We provide a full range of digital marketing services including SEO, social media marketing, Google Ads, content creation, and website design to help businesses grow their online presence and increase sales.",
+                  text: "We provide a full range of digital marketing services including SEO, social media marketing, Google Ads, content creation, and website design to help businesses grow their online presence and increase sales.",
                 },
               },
               {
                 "@type": "Question",
-                "name": "How can digital marketing help my business?",
-                "acceptedAnswer": {
+                name: "How can digital marketing help my business?",
+                acceptedAnswer: {
                   "@type": "Answer",
-                  "text":
-                    "Digital marketing helps your business reach the right audience, build brand awareness, and generate leads through strategic online campaigns that deliver measurable results.",
+                  text: "Digital marketing helps your business reach the right audience, build brand awareness, and generate leads through strategic online campaigns that deliver measurable results.",
                 },
               },
-              // ... (you can paste all your FAQ JSON here)
             ],
           },
           null,

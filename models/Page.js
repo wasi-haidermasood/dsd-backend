@@ -4,11 +4,25 @@ import mongoose from "mongoose";
 const pageSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
-    slug: { type: String, required: true, unique: true }, // e.g. "privacy-policy"
-    content: { type: String, required: true }, // plain text or HTML
-
+    slug: { type: String, required: true, unique: true },
+    
+    // Content type: 'html' for rich text, 'react' for React code
+    contentType: {
+      type: String,
+      enum: ["html", "react"],
+      default: "html",
+    },
+    
+    content: { type: String, required: true }, // HTML or React code
+    
+    // For React pages - additional options
+    hasNavigation: { type: Boolean, default: true },
+    hasFooter: { type: Boolean, default: true },
+    backgroundColor: { type: String, default: "#FFFFFF" },
+    
     seoTitle: { type: String, default: "" },
     seoDescription: { type: String, default: "" },
+    seoImage: { type: String, default: "" },
 
     status: {
       type: String,
@@ -16,7 +30,6 @@ const pageSchema = new mongoose.Schema(
       default: "published",
     },
 
-    // For footer / menus
     showInFooter: { type: Boolean, default: false },
     footerLabel: { type: String, default: "" },
     order: { type: Number, default: 0 },
