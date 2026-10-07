@@ -25,21 +25,34 @@ dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
+const SITE_URL = process.env.SITE_URL || "https://digitalsocialdreams.com";
 
 const app = express();
 
-// Allow your Vite frontend to call this backend
+// ── CORS Configuration (FIXED) ─────────────────────────────────────────────────
 const allowedOrigins = [
   "http://localhost:8080",
+  "http://localhost:5173",
   "https://digitalsocialdreams.com",
+  "https://www.digitalsocialdreams.com",
+  "https://digitalsocialdreams.digital",        // ADD THIS
+  "https://www.digitalsocialdreams.digital",    // ADD THIS (if using www)
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow non-browser tools (curl, Postman, sitemap crawlers) or if no origin
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error("Not allowed by CORS: " + origin), false);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Silently disallow CORS (no error, just no CORS headers)
+      // This prevents hard errors in logs
+      console.warn("CORS blocked for origin:", origin);
+      return callback(null, false);
     },
     credentials: true,
   })
@@ -83,7 +96,7 @@ app.get("/api/health", (req, res) => {
 
 // GET /api/hero - public
 app.get("/api/hero", async (req, res) => {
-  try {
+    try {
     let hero = await Hero.findOne();
 
     if (!hero) {
@@ -204,8 +217,8 @@ app.get("/api/hero", async (req, res) => {
   }
 });
 
-// Update hero content
-app.put("/api/hero", async (req, res) => {
+// Update hero content (moved protected version below)
+app.put("/api/hero", authMiddleware, async (req, res) => {
   try {
     const {
       heading,
@@ -243,7 +256,7 @@ app.put("/api/hero", async (req, res) => {
     res.json(hero);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Error fetching hero data" });
+    res.status(500).json({ message: "Error updating hero data" });
   }
 });
 
@@ -500,21 +513,6 @@ app.post("/api/auth/reset-password-dev", async (req, res) => {
 
 // ── Protected (Admin) Routes ───────────────────────────────────────────────────
 
-// Update hero content (protected by auth)
-app.put("/api/hero", authMiddleware, async (req, res) => {
-  try {
-    const data = req.body;
-    const hero = await Hero.findOneAndUpdate({}, data, {
-      new: true,
-      upsert: true,
-    });
-    res.json(hero);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error updating hero data" });
-  }
-});
-
 // PUT /api/services - protected (admin only)
 app.put("/api/services", authMiddleware, async (req, res) => {
   try {
@@ -599,11 +597,11 @@ app.post("/api/blog", authMiddleware, async (req, res) => {
       Array.isArray(data.tags) && data.tags.length
         ? data.tags
         : typeof data.tagsString === "string"
-        ? data.tagsString
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean)
-        : [];
+          ? data.tagsString
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : [];
 
     const post = await BlogPost.create({
       ...data,
@@ -647,11 +645,11 @@ app.put("/api/blog/:id", authMiddleware, async (req, res) => {
       Array.isArray(data.tags) && data.tags.length
         ? data.tags
         : typeof data.tagsString === "string"
-        ? data.tagsString
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean)
-        : undefined;
+          ? data.tagsString
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : undefined;
 
     const updated = await BlogPost.findByIdAndUpdate(
       id,
@@ -1094,8 +1092,7 @@ app.get("/api/how-we-work", async (req, res) => {
         badge: "The Process",
         heading: "Our Strategy for",
         rotatingWords: ["Success", "Growth", "Impact", "Results"],
-        description:
-          "We translate complex challenges into",
+        description: "We translate complex challenges into",
         highlightedText: "elegant solutions",
         descriptionSuffix: "through a proven four-step methodology.",
         cornerImages: [
@@ -1205,7 +1202,6 @@ app.put("/api/how-we-work", authMiddleware, async (req, res) => {
   }
 });
 
-
 // ---------- FAQ PUBLIC ROUTES ----------
 app.get("/api/faqs", async (req, res) => {
   try {
@@ -1241,7 +1237,9 @@ app.get("/api/faqs", async (req, res) => {
       });
     }
 
-    const faqs = [...config.faqs].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const faqs = [...config.faqs].sort(
+      (a, b) => (a.order || 0) - (b.order || 0)
+    );
 
     res.json({
       enabled: config.enabled,
@@ -1271,7 +1269,9 @@ app.put("/api/faqs", authMiddleware, async (req, res) => {
       upsert: true,
     });
 
-    const faqs = [...config.faqs].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const faqs = [...config.faqs].sort(
+      (a, b) => (a.order || 0) - (b.order || 0)
+    );
 
     res.json({
       enabled: config.enabled,
@@ -1718,8 +1718,6 @@ app.put("/api/footer", authMiddleware, async (req, res) => {
   }
 });
 
-// Add to your server.js
-
 // ---------- NAVIGATION PUBLIC ROUTES ----------
 app.get("/api/navigation", async (req, res) => {
   try {
@@ -1730,23 +1728,77 @@ app.get("/api/navigation", async (req, res) => {
         brandText: "Digital Social Dreams",
         logoUrl: "",
         navItems: [
-          { label: "Home", href: "#home", order: 0, isDropdown: false, dropdownItems: [] },
-          { 
-            label: "Services", 
-            href: "#services", 
-            order: 1, 
-            isDropdown: true, 
-            dropdownItems: [
-              { label: "SEO", href: "/services/seo", description: "Search Engine Optimization", icon: "Search", order: 0 },
-              { label: "Web Development", href: "/services/web-development", description: "Custom websites & apps", icon: "Code", order: 1 },
-              { label: "Social Media", href: "/services/social-media", description: "Social media marketing", icon: "Share2", order: 2 },
-              { label: "PPC Advertising", href: "/services/ppc", description: "Pay-per-click campaigns", icon: "Target", order: 3 },
-            ]
+          {
+            label: "Home",
+            href: "#home",
+            order: 0,
+            isDropdown: false,
+            dropdownItems: [],
           },
-          { label: "Portfolio", href: "#portfolio", order: 2, isDropdown: false, dropdownItems: [] },
-          { label: "About", href: "#about", order: 3, isDropdown: false, dropdownItems: [] },
-          { label: "Blog", href: "/blog", order: 4, isDropdown: false, dropdownItems: [] },
-          { label: "Contact", href: "/contact", order: 5, isDropdown: false, dropdownItems: [] },
+          {
+            label: "Services",
+            href: "#services",
+            order: 1,
+            isDropdown: true,
+            dropdownItems: [
+              {
+                label: "SEO",
+                href: "/services/seo",
+                description: "Search Engine Optimization",
+                icon: "Search",
+                order: 0,
+              },
+              {
+                label: "Web Development",
+                href: "/services/web-development",
+                description: "Custom websites & apps",
+                icon: "Code",
+                order: 1,
+              },
+              {
+                label: "Social Media",
+                href: "/services/social-media",
+                description: "Social media marketing",
+                icon: "Share2",
+                order: 2,
+              },
+              {
+                label: "PPC Advertising",
+                href: "/services/ppc",
+                description: "Pay-per-click campaigns",
+                icon: "Target",
+                order: 3,
+              },
+            ],
+          },
+          {
+            label: "Portfolio",
+            href: "#portfolio",
+            order: 2,
+            isDropdown: false,
+            dropdownItems: [],
+          },
+          {
+            label: "About",
+            href: "#about",
+            order: 3,
+            isDropdown: false,
+            dropdownItems: [],
+          },
+          {
+            label: "Blog",
+            href: "/blog",
+            order: 4,
+            isDropdown: false,
+            dropdownItems: [],
+          },
+          {
+            label: "Contact",
+            href: "/contact",
+            order: 5,
+            isDropdown: false,
+            dropdownItems: [],
+          },
         ],
         ctaLabel: "Get Started",
         ctaHref: "#contact",
@@ -1756,11 +1808,13 @@ app.get("/api/navigation", async (req, res) => {
     // Sort nav items and dropdown items
     const navItems = [...config.navItems]
       .sort((a, b) => (a.order || 0) - (b.order || 0))
-      .map(item => ({
+      .map((item) => ({
         ...item.toObject(),
-        dropdownItems: item.dropdownItems 
-          ? [...item.dropdownItems].sort((a, b) => (a.order || 0) - (b.order || 0))
-          : []
+        dropdownItems: item.dropdownItems
+          ? [...item.dropdownItems].sort(
+              (a, b) => (a.order || 0) - (b.order || 0)
+            )
+          : [],
       }));
 
     res.json({
@@ -1788,11 +1842,13 @@ app.put("/api/navigation", authMiddleware, async (req, res) => {
 
     const navItems = [...config.navItems]
       .sort((a, b) => (a.order || 0) - (b.order || 0))
-      .map(item => ({
+      .map((item) => ({
         ...item.toObject(),
-        dropdownItems: item.dropdownItems 
-          ? [...item.dropdownItems].sort((a, b) => (a.order || 0) - (b.order || 0))
-          : []
+        dropdownItems: item.dropdownItems
+          ? [...item.dropdownItems].sort(
+              (a, b) => (a.order || 0) - (b.order || 0)
+            )
+          : [],
       }));
 
     res.json({
@@ -1916,6 +1972,54 @@ app.put("/api/site", authMiddleware, async (req, res) => {
   }
 });
 
+// ---------- SITEMAP ROUTE ----------
+app.get("/sitemap.xml", async (req, res) => {
+  try {
+    const baseUrl = (process.env.SITE_URL || "https://digitalsocialdreams.com").replace(/\/+$/, "");
+
+    const staticUrls = [
+      { loc: "/", priority: "1.0" },
+      { loc: "/blog", priority: "0.9" },
+      { loc: "/contact", priority: "0.8" },
+    ];
+
+    const pages = await Page.find({ status: "published" }).select("slug updatedAt");
+    const pageUrls = pages.map((p) => ({
+      loc: `/pages/${p.slug}`,
+      lastmod: p.updatedAt ? p.updatedAt.toISOString().split("T")[0] : null,
+      priority: "0.7",
+    }));
+
+    const posts = await BlogPost.find({ status: "published" }).select("slug updatedAt");
+    const postUrls = posts.map((p) => ({
+      loc: `/blog/${p.slug}`,
+      lastmod: p.updatedAt ? p.updatedAt.toISOString().split("T")[0] : null,
+      priority: "0.7",
+    }));
+
+    const allUrls = [...staticUrls, ...pageUrls, ...postUrls];
+
+    const urlsXml = allUrls
+      .map((u) => {
+        const loc = `${baseUrl}${u.loc}`;
+        const lastmodPart = u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : "";
+        const priorityPart = u.priority ? `<priority>${u.priority}</priority>` : "";
+        return `<url><loc>${loc}</loc>${lastmodPart}<changefreq>weekly</changefreq>${priorityPart}</url>`;
+      })
+      .join("\n");
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urlsXml}
+</urlset>`;
+
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.status(200).send(xml);
+  } catch (err) {
+    console.error("Error generating sitemap:", err);
+    res.status(500).type("text/plain").send("Error generating sitemap");
+  }
+});
 // ── Database & Server Start ────────────────────────────────────────────────────
 
 const MONGODB_URI =
